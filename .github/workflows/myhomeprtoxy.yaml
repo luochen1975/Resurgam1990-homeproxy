@@ -2,29 +2,30 @@ name: myHomeProxy
 
 on:
   workflow_dispatch:
-    
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout source tree
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build ipk file
-        env:
-          RELEASE_TYPE: ${{ github.event_name }}
+      - name: Install build deps
         run: |
-          pushd .github
-          fakeroot bash build-ipk.sh
-          echo "ASSET_NAME=$(ls *.ipk)" >> $GITHUB_ENV
-          popd
+          sudo apt-get update
+          sudo apt-get install -y build-essential git gettext lua5.1 liblua5.1-dev pkg-config
 
-      
-      - name: Publishing to GitHub Releases
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ github.token }}
-          file: .github/${{ env.ASSET_NAME }}
+      - name: Build po2lmo from LuCI
+        run: |
+          # shallow clone LuCI, build po2lmo and install to /usr/local/bin
+          git clone --depth 1 https://github.com/openwrt/luci.git /tmp/luci
+          cd /tmp/luci/modules/luci-base/src || { echo "luci path not found"; exit 1; }
+          make || { echo "po2lmo build failed"; exit 1; }
+          sudo install -m 0755 po2lmo /usr/local/bin/po2lmo
+          echo "po2lmo installed to $(command -v po2lmo)"
+          /usr/local/bin/po2lmo --help || true
 
-          tag: ${{ github.ref }}
+      - name: Run build-ipk.sh
+        run: |
+          chmod +x ./build-ipk.sh
+          ./build-ipk.sh
