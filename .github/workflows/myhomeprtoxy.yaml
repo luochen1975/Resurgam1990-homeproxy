@@ -24,8 +24,36 @@ jobs:
           sudo install -m 0755 po2lmo /usr/local/bin/po2lmo
           echo "po2lmo installed to $(command -v po2lmo)"
           /usr/local/bin/po2lmo --help || true
+      - name: Ensure po2lmo is available
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+
+        # 如果已存在则跳过
+        if command -v po2lmo >/dev/null 2>&1; then
+          echo "po2lmo already installed"
+          exit 0
+        fi
+
+        # 优先从 apt 安装（ubuntu runner）
+        if apt-cache show po2lmo >/dev/null 2>&1; then
+          sudo apt-get install -y po2lmo
+          exit 0
+        fi
+
+        # 回退：从 luci 仓库复制脚本（轻量、无需完整构建）
+        git clone --depth 1 https://github.com/openwrt/luci.git /tmp/luci-po2lmo
+        if [ -f /tmp/luci-po2lmo/tools/po2lmo/po2lmo ]; then
+          sudo install -m0755 /tmp/luci-po2lmo/tools/po2lmo/po2lmo /usr/local/bin/po2lmo
+          echo "po2lmo installed from luci/tools"
+          exit 0
+        fi
+
+        echo "Error: po2lmo not available (apt not found and luci/tools missing)."
+        exit 1
 
       - name: Run build-ipk.sh
         run: |
           chmod +x ./build-ipk.sh
           ./build-ipk.sh
+
