@@ -17,9 +17,9 @@ jobs:
 
       - name: Build po2lmo from LuCI
         run: |
-          # shallow clone LuCI, build po2lmo and install to /usr/local/bin
+          # shallow clone LuCI
           git clone --depth 1 https://github.com/openwrt/luci.git /tmp/luci
-          cd /tmp/luci/modules/luci-base/src || { echo "luci path not found"; exit 1; }
+          cd /tmp/luci/tools/po2lmo
           make || { echo "po2lmo build failed"; exit 1; }
           sudo install -m 0755 po2lmo /usr/local/bin/po2lmo
           echo "po2lmo installed to $(command -v po2lmo)"
@@ -57,3 +57,4 @@ jobs:
         run: |
           chmod +x ./build-ipk.sh
           ./build-ipk.sh
+
